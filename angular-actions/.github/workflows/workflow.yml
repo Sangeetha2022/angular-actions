@@ -1,0 +1,62 @@
+name: Angular CI
+
+
+on:
+ 
+  push:
+    
+    branches: 
+      - "master"
+
+ 
+env:
+  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID}}
+  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  aws-region: us-east-1        
+jobs:
+
+  build:
+   
+    runs-on: ubuntu-latest
+
+   
+    steps:
+    
+      - uses: actions/checkout@v3
+
+      
+      - name: Run a one-line script
+        run: echo Hello, world! hi San
+
+      
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+Upload_S3:
+    runs-on: ubuntu-latest
+    needs: validation
+    if: needs.validation.outputs.run_frontend_jobs == 'commited'
+    steps:
+    - name: Check the  branch
+      uses: actions/checkout@v2
+    - name: Installing the Node and its dependencies
+      uses: actions/setup-node@v1
+      with:
+        node-version: 10
+    - name: Installing node modules
+      working-directory: ./application/clients/desktop
+      run: |
+        npm install -g @angular/cli
+        npm i node-sass@4.8.3
+        npm i 
+        ng build --configuration=${{ needs.validation.outputs.configuration }}
+    - name: Uploaging dist files into the S3 bucket
+      uses: jakejarvis/s3-sync-action@v0.5.1
+      with:
+        args: --acl public-read --delete
+      env:
+        AWS_S3_BUCKET: ${{ needs.validation.outputs.bucket }}
+        AWS_ACCESS_KEY_ID: ${{ env.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ env. aws-secret-access-key}}
+        
